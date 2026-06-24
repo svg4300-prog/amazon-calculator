@@ -3,34 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>亚马逊发货与工厂采购对齐工具 (灵活主推版)</title>
+    <title>亚马逊发货与工厂采购对齐工具 (多策略组合版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
     <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-6xl mx-auto border border-gray-700">
-        <h1 class="text-2xl font-bold mb-6 text-center text-blue-400">📊 亚马逊发货与工厂采购对齐工具 (智能配比)</h1>
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-400">📊 亚马逊发货与工厂采购对齐工具 (多策略混合)</h1>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">准备做的链接数量</label>
-                <input type="number" id="numLinks" value="5" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500" oninput="calculate()">
+        <div class="bg-gray-850 p-4 rounded-lg border border-gray-700 bg-gray-900/30 mb-6">
+            <h3 class="text-sm font-semibold text-gray-300 mb-4 flex items-center">
+                <span class="mr-2">⚙️</span> 配置各颜色策略的链接数量 (各策略内：主推占 80%，其余两种平分各占 10%)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">🔘 黑白混色为主推的链接数</label>
+                    <input type="number" id="linksMix" value="6" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500" oninput="calculate()">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">⚫ 纯黑色为主推的链接数</label>
+                    <input type="number" id="linksBlack" value="4" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500" oninput="calculate()">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">⚪ 纯白色为主推的链接数</label>
+                    <input type="number" id="linksWhite" value="0" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500" oninput="calculate()">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">📦 单条链接单变体发货箱数</label>
+                    <input type="number" id="boxesPerVariant" value="5" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500" oninput="calculate()">
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">单条链接单变体发货箱数</label>
-                <input type="number" id="boxesPerVariant" value="5" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500" oninput="calculate()">
+            
+            <div class="mt-4 flex flex-wrap gap-4 text-xs text-gray-400 border-t border-gray-800 pt-3">
+                <div>🚀 当前规划总链接数：<span id="totalLinksTxt" class="text-blue-400 font-bold">10</span> 条</div>
+                <div>📦 每个变体发亚马逊总箱数：<span id="totalAmzBoxesTxt" class="text-yellow-400 font-bold">50</span> 箱</div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">🔥 选择本次主推颜色 (占80%)</label>
-                <select id="mainColor" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500" onchange="calculate()">
-                    <option value="mix">🔘 黑白混色 (默认)</option>
-                    <option value="black">⚫ 纯黑色</option>
-                    <option value="white">⚪ 纯白色</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="mb-6 p-3 bg-gray-750 rounded border border-gray-750 text-xs text-gray-400">
-            💡 <strong>配比说明：</strong> 主推颜色自动分配 <span class="text-yellow-400 font-bold">80%</span> 的发货量，其余两种颜色分别平分 <span class="text-blue-400 font-bold">10%</span>。表格数据在修改上方参数时会<strong>自动实时计算</strong>。
         </div>
 
         <div class="space-y-8" id="resultContainer">
@@ -42,10 +48,18 @@
         const factorySpecs = { "6只装": 150, "8只装": 150, "10只装": 150, "12只装": 129 };
 
         function calculate() {
-            const numLinks = parseInt(document.getElementById('numLinks').value) || 0;
+            // 获取各策略的链接数
+            const linksMix = parseInt(document.getElementById('linksMix').value) || 0;
+            const linksBlack = parseInt(document.getElementById('linksBlack').value) || 0;
+            const linksWhite = parseInt(document.getElementById('linksWhite').value) || 0;
             const boxesPerVariant = parseInt(document.getElementById('boxesPerVariant').value) || 0;
-            const mainColor = document.getElementById('mainColor').value;
-            const totalAmazonBoxes = numLinks * boxesPerVariant;
+
+            const totalLinks = linksMix + linksBlack + linksWhite;
+            const totalAmazonBoxes = totalLinks * boxesPerVariant;
+
+            // 更新页头统计看板
+            document.getElementById('totalLinksTxt').innerText = totalLinks;
+            document.getElementById('totalAmzBoxesTxt').innerText = totalAmazonBoxes;
             
             const container = document.getElementById('resultContainer');
             container.innerHTML = '';
@@ -53,30 +67,43 @@
             Object.keys(amazonSpecs).forEach(variant => {
                 const amzSpec = amazonSpecs[variant];
                 const facSpec = factorySpecs[variant];
-                
-                // 1. 计算该规格亚马逊总需求量
-                const amzTotalNeeded = totalAmazonBoxes * amzSpec;
-                
-                // 2. 根据选择的主推颜色动态分配比例
-                let pBlack = 0.1, pWhite = 0.1, pMix = 0.1;
-                if (mainColor === 'black') { pBlack = 0.8; pWhite = 0.1; pMix = 0.1; }
-                else if (mainColor === 'white') { pWhite = 0.8; pBlack = 0.1; pMix = 0.1; }
-                else { pMix = 0.8; pBlack = 0.1; pWhite = 0.1; }
 
-                // 亚马逊发货计划 (盒数)
-                const blackNeeded = amzTotalNeeded * pBlack;
-                const whiteNeeded = amzTotalNeeded * pWhite;
-                const mixNeeded = amzTotalNeeded * pMix;
+                // 单条链接单个变体需要的总盒数
+                const amzQtyPerLink = boxesPerVariant * amzSpec;
 
-                // 3. 计算工厂整箱采购量
+                // 核心加权算法：根据不同的策略，累加出各种颜色真正需要的总盒数
+                // 1. 混色主推链接的贡献
+                const blackFromMixStrategy = linksMix * amzQtyPerLink * 0.1;
+                const whiteFromMixStrategy = linksMix * amzQtyPerLink * 0.1;
+                const mixFromMixStrategy = linksMix * amzQtyPerLink * 0.8;
+
+                // 2. 黑色主推链接的贡献
+                const blackFromBlackStrategy = linksBlack * amzQtyPerLink * 0.8;
+                const whiteFromBlackStrategy = linksBlack * amzQtyPerLink * 0.1;
+                const mixFromBlackStrategy = linksBlack * amzQtyPerLink * 0.1;
+
+                // 3. 白色主推链接的贡献
+                const blackFromWhiteStrategy = linksWhite * amzQtyPerLink * 0.1;
+                const whiteFromWhiteStrategy = linksWhite * amzQtyPerLink * 0.8;
+                const mixFromWhiteStrategy = linksWhite * amzQtyPerLink * 0.1;
+
+                // 汇总亚马逊最终各类颜色的总需量（盒）
+                const blackNeeded = blackFromMixStrategy + blackFromBlackStrategy + blackFromWhiteStrategy;
+                const whiteNeeded = whiteFromMixStrategy + whiteFromBlackStrategy + whiteFromWhiteStrategy;
+                const mixNeeded = mixFromMixStrategy + mixFromBlackStrategy + mixFromWhiteStrategy;
+                const amzTotalNeeded = blackNeeded + whiteNeeded + mixNeeded;
+
+                // 计算工厂整箱采购量 (按该变体总需量向上取整)
                 const factoryBoxesNeeded = Math.ceil(amzTotalNeeded / facSpec);
                 const finalPurchaseQty = factoryBoxesNeeded * facSpec;
                 const totalLeftover = finalPurchaseQty - amzTotalNeeded;
 
-                // 4. 工厂整箱颜色分配逻辑
-                const blackBoxes = Math.round(blackNeeded / facSpec);
-                const whiteBoxes = Math.round(whiteNeeded / facSpec);
-                const mixBoxes = factoryBoxesNeeded - blackBoxes - whiteBoxes;
+                // 工厂整箱颜色分配（四舍五入拟合工厂箱数，最后差额由最大需求的颜色兜底，确保总箱数绝对准确）
+                let blackBoxes = Math.round(blackNeeded / facSpec);
+                let whiteBoxes = Math.round(whiteNeeded / facSpec);
+                let mixBoxes = factoryBoxesNeeded - blackBoxes - whiteBoxes;
+                
+                if(mixBoxes < 0) { mixBoxes = 0; blackBoxes = factoryBoxesNeeded - whiteBoxes; } // 极端防呆
 
                 // 工厂实际采购到货的颜色数量
                 const blackPurchased = blackBoxes * facSpec;
@@ -92,10 +119,10 @@
                 container.innerHTML += `
                     <div class="bg-gray-850 p-4 rounded-lg border border-gray-700 bg-gray-900/50">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-700 pb-3 mb-3">
-                            <h2 class="text-xl font-bold text-yellow-400">📌 ${variant}（总发货 ${totalAmazonBoxes} 箱）</h2>
+                            <h2 class="text-xl font-bold text-yellow-400">📌 ${variant}（共规划 ${totalLinks} 条链接，发货 ${totalAmazonBoxes} 箱）</h2>
                             <div class="text-sm text-gray-400 mt-2 md:mt-0">
                                 <span>工厂箱规: <strong class="text-white">${facSpec} 盒/箱</strong></span> | 
-                                <span class="ml-2">共需采购: <strong class="text-emerald-400">${factoryBoxesNeeded} 箱 (${finalPurchaseQty.toLocaleString()} 盒)</strong></span>
+                                <span class="ml-2">总计采购: <strong class="text-emerald-400">${factoryBoxesNeeded} 箱 (${finalPurchaseQty.toLocaleString()} 盒)</strong></span>
                             </div>
                         </div>
                         
@@ -104,32 +131,32 @@
                                 <thead>
                                     <tr class="text-gray-400 border-b border-gray-800 text-xs uppercase">
                                         <th class="py-2">包装颜色</th>
-                                        <th class="py-2">1️⃣ 亚马逊发货需打包 (盒)</th>
+                                        <th class="py-2">1️⃣ 亚马逊多策略混合总需 (盒)</th>
                                         <th class="py-2 text-emerald-400">2️⃣ 向工厂采购下单 (箱/盒)</th>
                                         <th class="py-2 text-orange-400">3️⃣ 最终仓库留存备货 (盒)</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-800">
-                                    <tr class="${mainColor === 'black' ? 'bg-blue-900/20' : ''}">
-                                        <td class="py-3 font-medium">⚫ 纯黑色 (${(pBlack*100)}%) ${mainColor === 'black' ? '🔥' : ''}</td>
+                                    <tr>
+                                        <td class="py-3 font-medium">⚫ 纯黑色</td>
                                         <td class="py-3">${blackNeeded.toLocaleString()} 盒</td>
                                         <td class="py-3 text-emerald-400 font-medium">${blackBoxes} 箱 (${blackPurchased.toLocaleString()} 盒)</td>
                                         <td class="py-3 text-orange-400 font-medium">${blackLeftover.toLocaleString()} 盒</td>
                                     </tr>
-                                    <tr class="${mainColor === 'white' ? 'bg-blue-900/20' : ''}">
-                                        <td class="py-3 font-medium">⚪ 纯白色 (${(pWhite*100)}%) ${mainColor === 'white' ? '🔥' : ''}</td>
+                                    <tr>
+                                        <td class="py-3 font-medium">⚪ 纯白色</td>
                                         <td class="py-3">${whiteNeeded.toLocaleString()} 盒</td>
                                         <td class="py-3 text-emerald-400 font-medium">${whiteBoxes} 箱 (${whitePurchased.toLocaleString()} 盒)</td>
                                         <td class="py-3 text-orange-400 font-medium">${whiteLeftover.toLocaleString()} 盒</td>
                                     </tr>
-                                    <tr class="${mainColor === 'mix' ? 'bg-blue-900/20' : ''}">
-                                        <td class="py-3 font-medium">🔘 黑白混色 (${(pMix*100)}%) ${mainColor === 'mix' ? '🔥' : ''}</td>
+                                    <tr>
+                                        <td class="py-3 font-medium">🔘 黑白混色</td>
                                         <td class="py-3">${mixNeeded.toLocaleString()} 盒</td>
                                         <td class="py-3 text-emerald-400 font-medium">${mixBoxes} 箱 (${mixPurchased.toLocaleString()} 盒)</td>
                                         <td class="py-3 text-orange-400 font-medium">${mixLeftover.toLocaleString()} 盒</td>
                                     </tr>
                                     <tr class="bg-gray-800/30 font-bold text-gray-300">
-                                        <td class="py-3">小计</td>
+                                        <td class="py-3">总计</td>
                                         <td class="py-3">${amzTotalNeeded.toLocaleString()} 盒</td>
                                         <td class="py-3 text-emerald-400">${factoryBoxesNeeded} 箱 (${finalPurchaseQty.toLocaleString()} 盒)</td>
                                         <td class="py-3 text-orange-400">${totalLeftover.toLocaleString()} 盒</td>
