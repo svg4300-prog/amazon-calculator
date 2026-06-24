@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>亚马逊发货与工厂采购对齐工具</title>
+    <title>亚马逊发货与工厂采购对齐工具 (多颜色版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-4xl border border-gray-700">
-        <h1 class="text-2xl font-bold mb-6 text-center text-blue-400">📊 亚马逊发货与工厂采购对齐工具</h1>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
+    <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-6xl mx-auto border border-gray-700">
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-400">📊 亚马逊发货与工厂采购对齐工具 (带颜色分配)</h1>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
@@ -21,26 +21,12 @@
             </div>
         </div>
 
-        <button onclick="calculate()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded transition duration-200 mb-6">
-            一键计算采购量
+        <button onclick="calculate()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded transition duration-200 mb-8">
+            一键计算采购与分装方案
         </button>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b border-gray-700 text-gray-400 text-sm">
-                        <th class="pb-3">变体规格</th>
-                        <th class="pb-3">亚马逊总需 (盒)</th>
-                        <th class="pb-3">工厂箱规</th>
-                        <th class="pb-3">需向工厂买 (箱)</th>
-                        <th class="pb-3 text-emerald-400">最终采购总数 (盒)</th>
-                        <th class="pb-3 text-orange-400">仓库留存备货 (盒)</th>
-                    </tr>
-                </thead>
-                <tbody id="resultBody" class="divide-y divide-gray-700 text-sm">
-                    </tbody>
-            </table>
-        </div>
+        <div class="space-y-8" id="resultContainer">
+            </div>
     </div>
 
     <script>
@@ -52,31 +38,97 @@
             const boxesPerVariant = parseInt(document.getElementById('boxesPerVariant').value) || 0;
             const totalAmazonBoxes = numLinks * boxesPerVariant;
             
-            const tbody = document.getElementById('resultBody');
-            tbody.innerHTML = '';
+            const container = document.getElementById('resultContainer');
+            container.innerHTML = '';
 
             Object.keys(amazonSpecs).forEach(variant => {
                 const amzSpec = amazonSpecs[variant];
                 const facSpec = factorySpecs[variant];
                 
+                // 1. 计算该规格亚马逊总需求量
                 const amzTotalNeeded = totalAmazonBoxes * amzSpec;
+                
+                // 2. 颜色细分（亚马逊发货计划）
+                const blackNeeded = amzTotalNeeded * 0.1;
+                const whiteNeeded = amzTotalNeeded * 0.1;
+                const mixNeeded = amzTotalNeeded - blackNeeded - whiteNeeded;
+
+                // 3. 计算工厂整箱采购量
                 const factoryBoxesNeeded = Math.ceil(amzTotalNeeded / facSpec);
                 const finalPurchaseQty = factoryBoxesNeeded * facSpec;
-                const leftover = finalPurchaseQty - amzTotalNeeded;
+                const totalLeftover = finalPurchaseQty - amzTotalNeeded;
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-gray-750 transition">
-                        <td class="py-3 font-medium">${variant}</td>
-                        <td class="py-3">${amzTotalNeeded.toLocaleString()}</td>
-                        <td class="py-3 text-gray-400">${facSpec} 盒/箱</td>
-                        <td class="py-3">${factoryBoxesNeeded} 箱</td>
-                        <td class="py-3 font-semibold text-emerald-400">${finalPurchaseQty.toLocaleString()} 盒</td>
-                        <td class="py-3 font-semibold text-orange-400">${leftover.toLocaleString()} 盒</td>
-                    </tr>
+                // 4. 工厂整箱颜色分配逻辑（优先满足黑白混色，剩余凑整箱）
+                // 工厂黑/白理论箱数
+                const blackBoxes = Math.round(blackNeeded / facSpec);
+                const whiteBoxes = Math.round(whiteNeeded / facSpec);
+                // 剩下的全是混色箱数
+                const mixBoxes = factoryBoxesNeeded - blackBoxes - whiteBoxes;
+
+                // 工厂实际采购到货的颜色数量
+                const blackPurchased = blackBoxes * facSpec;
+                const whitePurchased = whiteBoxes * facSpec;
+                const mixPurchased = mixBoxes * facSpec;
+
+                // 留存备货库存颜色细分
+                const blackLeftover = blackPurchased - blackNeeded;
+                const whiteLeftover = whitePurchased - whiteNeeded;
+                const mixLeftover = mixPurchased - mixNeeded;
+
+                // 生成单独变体的卡片和表格
+                container.innerHTML += `
+                    <div class="bg-gray-850 p-4 rounded-lg border border-gray-700 bg-gray-900/50">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-700 pb-3 mb-3">
+                            <h2 class="text-xl font-bold text-yellow-400">📌 ${variant}（总发货 ${totalAmazonBoxes} 箱）</h2>
+                            <div class="text-sm text-gray-400 mt-2 md:mt-0">
+                                <span>工厂箱规: <strong class="text-white">${facSpec} 盒/箱</strong></span> | 
+                                <span class="ml-2">共需采购: <strong class="text-emerald-400">${factoryBoxesNeeded} 箱 (${finalPurchaseQty.toLocaleString()} 盒)</strong></span>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="text-gray-400 border-b border-gray-800 text-xs uppercase">
+                                        <th class="py-2">包装颜色</th>
+                                        <th class="py-2">1️⃣ 亚马逊发货需打包 (盒)</th>
+                                        <th class="py-2 text-emerald-400">2️⃣ 向工厂采购下单 (箱/盒)</th>
+                                        <th class="py-2 text-orange-400">3️⃣ 最终仓库留存备货 (盒)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-800">
+                                    <tr>
+                                        <td class="py-3 font-medium">⚫ 纯黑色 (10%)</td>
+                                        <td class="py-3">${blackNeeded.toLocaleString()} 盒</td>
+                                        <td class="py-3 text-emerald-400 font-medium">${blackBoxes} 箱 (${blackPurchased.toLocaleString()} 盒)</td>
+                                        <td class="py-3 text-orange-400 font-medium">${blackLeftover.toLocaleString()} 盒</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 font-medium">⚪ 纯白色 (10%)</td>
+                                        <td class="py-3">${whiteNeeded.toLocaleString()} 盒</td>
+                                        <td class="py-3 text-emerald-400 font-medium">${whiteBoxes} 箱 (${whitePurchased.toLocaleString()} 盒)</td>
+                                        <td class="py-3 text-orange-400 font-medium">${whiteLeftover.toLocaleString()} 盒</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 font-medium">🔘 黑白混色 (80%)</td>
+                                        <td class="py-3">${mixNeeded.toLocaleString()} 盒</td>
+                                        <td class="py-3 text-emerald-400 font-medium">${mixBoxes} 箱 (${mixPurchased.toLocaleString()} 盒)</td>
+                                        <td class="py-3 text-orange-400 font-medium">${mixLeftover.toLocaleString()} 盒</td>
+                                    </tr>
+                                    <tr class="bg-gray-800/30 font-bold text-gray-300">
+                                        <td class="py-3">小计</td>
+                                        <td class="py-3">${amzTotalNeeded.toLocaleString()} 盒</td>
+                                        <td class="py-3 text-emerald-400">${factoryBoxesNeeded} 箱 (${finalPurchaseQty.toLocaleString()} 盒)</td>
+                                        <td class="py-3 text-orange-400">${totalLeftover.toLocaleString()} 盒</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 `;
             });
         }
-        // 页面加载自动运行一次
+        // 自动初始化运行
         calculate();
     </script>
 </body>
