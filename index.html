@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊发货与工厂采购对齐工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-4xl border border-gray-700">
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-400">📊 亚马逊发货与工厂采购对齐工具</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">准备做的链接数量</label>
+                <input type="number" id="numLinks" value="5" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">单条链接单变体发货箱数</label>
+                <input type="number" id="boxesPerVariant" value="5" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+        </div>
+
+        <button onclick="calculate()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded transition duration-200 mb-6">
+            一键计算采购量
+        </button>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-gray-700 text-gray-400 text-sm">
+                        <th class="pb-3">变体规格</th>
+                        <th class="pb-3">亚马逊总需 (盒)</th>
+                        <th class="pb-3">工厂箱规</th>
+                        <th class="pb-3">需向工厂买 (箱)</th>
+                        <th class="pb-3 text-emerald-400">最终采购总数 (盒)</th>
+                        <th class="pb-3 text-orange-400">仓库留存备货 (盒)</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody" class="divide-y divide-gray-700 text-sm">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const amazonSpecs = { "6只装": 152, "8只装": 150, "10只装": 150, "12只装": 132 };
+        const factorySpecs = { "6只装": 150, "8只装": 150, "10只装": 150, "12只装": 129 };
+
+        function calculate() {
+            const numLinks = parseInt(document.getElementById('numLinks').value) || 0;
+            const boxesPerVariant = parseInt(document.getElementById('boxesPerVariant').value) || 0;
+            const totalAmazonBoxes = numLinks * boxesPerVariant;
+            
+            const tbody = document.getElementById('resultBody');
+            tbody.innerHTML = '';
+
+            Object.keys(amazonSpecs).forEach(variant => {
+                const amzSpec = amazonSpecs[variant];
+                const facSpec = factorySpecs[variant];
+                
+                const amzTotalNeeded = totalAmazonBoxes * amzSpec;
+                const factoryBoxesNeeded = Math.ceil(amzTotalNeeded / facSpec);
+                const finalPurchaseQty = factoryBoxesNeeded * facSpec;
+                const leftover = finalPurchaseQty - amzTotalNeeded;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-750 transition">
+                        <td class="py-3 font-medium">${variant}</td>
+                        <td class="py-3">${amzTotalNeeded.toLocaleString()}</td>
+                        <td class="py-3 text-gray-400">${facSpec} 盒/箱</td>
+                        <td class="py-3">${factoryBoxesNeeded} 箱</td>
+                        <td class="py-3 font-semibold text-emerald-400">${finalPurchaseQty.toLocaleString()} 盒</td>
+                        <td class="py-3 font-semibold text-orange-400">${leftover.toLocaleString()} 盒</td>
+                    </tr>
+                `;
+            });
+        }
+        // 页面加载自动运行一次
+        calculate();
+    </script>
+</body>
+</html>
